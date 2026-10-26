@@ -73,7 +73,10 @@ test('A4 bad inputs do not issue a registry request',async()=>{
   return Response.json({})})
  try {
   for(const [name,args] of [['lax_get_job',{}],['lax_get_offer',{id:''}],['lax_search_agents',{query:'x'.repeat(101)}],['lax_list_jobs',{limit:101}],['lax_submit',{...input,payout_address:'0xabc'}],['lax_submit',{...input,repo_or_patch_url:'http://example.com'}],['lax_submit',{...input,agent_did:'not-did'}]]) {
-   try {assert.equal((await client.callTool({name,arguments:args})).isError,true)} catch(error) {assert.ok(error.message)}
+   let result, failure
+   try {result=await client.callTool({name,arguments:args})} catch(error) {failure=error}
+   if(failure) assert.equal(failure.code,-32602)
+   else assert.equal(result.isError,true)
   }
   assert.equal(calls,0)
  } finally {await close()}
