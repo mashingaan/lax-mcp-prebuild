@@ -51,6 +51,6 @@ Use the absolute built CLI path in your installation:
 - A6: actual stdio and Streamable HTTP SDK sessions, bin metadata and pack dry-run. npm publication is NOT complete and not simulated.
 - A7: Claude Desktop configuration and examples for every tool.
 
-Tests are entirely offline, including subprocess transports. `npm test` builds before testing. Hosted CI runs Node 20/22. No live registry submissions are made by tests.
+Tests are entirely offline, including subprocess transports. `npm test` builds before testing. `npm run test:mutations` checks six planted defects in routes, query arguments, error handling, job selection and envelope preservation. Hosted CI runs Node 20/22 on Linux and Windows. No live registry submissions are made by tests. Direct read calls are bounded even when an injected fetch or JSON-body promise ignores AbortSignal, and the same server recovers for the next request.
 
 PACT-dependent items: confirm npm publisher access, an available authorized package name and required invocation semantics. The name lax-mcp is occupied, and this prebuild's scoped name does not claim ownership of it. A registry job schema or PACT change belongs in the reused jobs adapter. Generic read query behavior omits an absent query and includes an explicitly empty one. This implementation does not claim compatibility with unpublished PACT formats or unseen tests.

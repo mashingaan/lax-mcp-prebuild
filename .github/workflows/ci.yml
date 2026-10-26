@@ -8,7 +8,8 @@ jobs:
       fail-fast: false
       matrix:
         node: [20, 22]
-    runs-on: ubuntu-latest
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,4 +19,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:mutations
       - run: npm pack --dry-run

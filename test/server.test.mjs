@@ -91,3 +91,31 @@ test('Concurrent requests retain separate JSON envelopes',async()=>{
   assert.deepEqual(result.map(r=>parsed(r).job.id),['one','two'])
  } finally {await close()}
 })
+
+test('A3 uncooperative read fetch and JSON bodies time out, then recover', {timeout:2000},async t=>{
+ t.mock.timers.enable({apis:['setTimeout']})
+ for(const mode of ['fetch','body']) {
+  let started
+  const ready=new Promise(resolve=>{started=resolve})
+  let calls=0
+  const {client,close}=await pair(async()=>{
+   calls++
+   if(calls===1) {
+    started()
+    if(mode==='fetch') return new Promise(()=>{})
+    return {ok:true,status:200,json:()=>new Promise(()=>{})}
+   }
+   return Response.json({offer:{id:'recovered'}})
+  })
+  try {
+   const pending=client.callTool({name:'lax_get_offer',arguments:{id:'first'}})
+   await ready
+   await Promise.resolve()
+   t.mock.timers.tick(15001)
+   const result=await pending
+   assert.equal(result.isError,true)
+   assert.ok(result.content[0].text.includes('HTTP'))
+   assert.deepEqual(parsed(await client.callTool({name:'lax_get_offer',arguments:{id:'second'}})),{offer:{id:'recovered'}})
+  } finally {await close()}
+ }
+})

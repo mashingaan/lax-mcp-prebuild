@@ -77,9 +77,13 @@ export function createJobsClient(options: JobsClientOptions = {}): JobsClient {
   async function attempt(path: string, body?: string): Promise<{ response: Response, data: unknown }> {
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
-    const expired = new Promise<never>((_, reject) => {
+    let received: Response | undefined
+    const expired = new Promise<{ response: Response, data: unknown }>((resolve, reject) => {
       timer = setTimeout(() => {
-        reject(new LaxJobsError('Request timed out', 0, 'network'))
+        // Receiving an error status already determines its retry policy, even
+        // when its body stalls. Do not turn a received 400 into a network retry.
+        if (received && !received.ok) resolve({response:received,data:undefined})
+        else reject(new LaxJobsError('Request timed out', received?.status ?? 0, 'network'))
         controller.abort()
       }, timeout)
     })
@@ -92,6 +96,7 @@ export function createJobsClient(options: JobsClientOptions = {}): JobsClient {
             ...(body === undefined ? {} : { body, headers: { 'content-type': 'application/json' } }),
             signal: controller.signal
           })
+          received = response
         } catch { throw new LaxJobsError('Network request failed', 0, 'network') }
         let data: unknown
         try { data = await response.json() } catch {

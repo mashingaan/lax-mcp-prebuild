@@ -13,7 +13,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test test/server.test.mjs test/transports.test.mjs"
+    "test": "npm run build && node --test test/server.test.mjs test/transports.test.mjs",
+    "test:mutations": "node test/mutations.mjs"
   },
   "dependencies": { "@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7" },
   "devDependencies": { "@types/node": "22.10.2", "typescript": "5.7.3" }

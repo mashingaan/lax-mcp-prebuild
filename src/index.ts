@@ -23,12 +23,21 @@ export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
   }
   async function read(path: string): Promise<unknown> {
     let response: Response
-    try {response = await fetcher(`${baseUrl}${path}`,{method:'GET',signal:AbortSignal.timeout(15000)})}
-    catch {throw new LaxJobsError('Network request failed',0,'network')}
-    let data: unknown
-    try {data=await response.json()} catch {throw new LaxJobsError('Registry returned invalid JSON',response.status,'invalid_response')}
-    if(!response.ok) throw new LaxJobsError(object(data)&&typeof data.error==='string'?data.error:`Registry HTTP ${response.status}`,response.status,'bad_request')
-    return data
+    const controller=new AbortController()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([new Promise<never>((_,reject)=>{timer=setTimeout(()=>{
+        reject(new LaxJobsError('Network request timed out',response?.status??0,'network'))
+        controller.abort()
+      },15000)}),(async()=>{
+        try {response=await fetcher(`${baseUrl}${path}`,{method:'GET',signal:controller.signal})}
+        catch {throw new LaxJobsError('Network request failed',0,'network')}
+        let data: unknown
+        try {data=await response.json()} catch {throw new LaxJobsError('Registry returned invalid JSON',response.status,'invalid_response')}
+        if(!response.ok) throw new LaxJobsError(object(data)&&typeof data.error==='string'?data.error:`Registry HTTP ${response.status}`,response.status,'bad_request')
+        return data
+      })()])
+    } finally {if(timer!==undefined) clearTimeout(timer)}
   }
   // Capture the original JSON envelope per call, preserving additional registry
   // metadata while sharing the tested jobs client's validation and transport.
