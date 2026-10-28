@@ -70,7 +70,7 @@ export function createJobsClient(options: JobsClientOptions = {}): JobsClient {
   if (!Number.isFinite(timeout) || timeout <= 0 || timeout > 2147483647) invalid('timeoutMs must be a positive timer duration')
   const sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)))
   const idPath = (id: string) => {
-    if (!nonempty(id)) invalid('job id must be a nonempty string')
+    if (!nonempty(id) || id === '.' || id === '..') invalid('job id must be a nonempty path segment')
     try { return `/jobs/${encodeURIComponent(id)}` } catch { return invalid('job id cannot be URL encoded') }
   }
 

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { createJobsClient, LaxJobsError } from './jobs-client.js'
 export interface LaxMcpOptions { baseUrl?: string, fetch?: typeof globalThis.fetch }
 const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value)
-const id = z.string().min(1).describe('Registry identifier, URL encoded by the server')
+const id = z.string().min(1).refine(value => value !== '.' && value !== '..', 'Identifier must be a path segment').describe('Registry identifier, URL encoded by the server')
 const did = z.string().regex(/^did:[a-z0-9]+:\S+$/)
 const payout = z.string().regex(/^0x[0-9a-fA-F]{40}$/)
 const https = z.string().url().refine(value => new URL(value).protocol === 'https:', 'An https URL is required')

@@ -67,6 +67,21 @@ test('A3 HTTP failures and network failures are tool errors and recovery works',
   }
  }
 })
+test('A4 dot segments are rejected without requests',async()=>{
+ let calls=0
+ const {client,close}=await pair(async()=>{calls++
+  return Response.json({})})
+ try {
+  for(const id of ['.','..']) {
+   for(const [name,args] of [['lax_get_job',{id}],['lax_get_offer',{id}],['lax_submit',{...input,job_id:id}]]) {
+    let result
+    try {result=await client.callTool({name,arguments:args})} catch(error) {assert.equal(error.code,-32602)}
+    if(result) assert.equal(result.isError,true)
+   }
+  }
+  assert.equal(calls,0)
+ } finally {await close()}
+})
 test('A4 bad inputs do not issue a registry request',async()=>{
  let calls=0
  const {client,close}=await pair(async()=>{calls++
