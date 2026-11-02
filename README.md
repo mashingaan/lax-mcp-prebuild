@@ -14,10 +14,10 @@ Default transport is stdio, with no application logs on stdout. HTTP is stateles
 
 ## npm installation
 
-For the published 0.1.0 release:
+For the published 0.1.1 release:
 
 ```sh
-npm install -g @mashingaan/lax-mcp-prebuild@0.1.0
+npm install -g @mashingaan/lax-mcp-prebuild@0.1.1
 lax-mcp
 lax-mcp --http --port 3000
 ```
@@ -25,7 +25,7 @@ lax-mcp --http --port 3000
 Alternatively run without a global installation:
 
 ```sh
-npx --yes --package @mashingaan/lax-mcp-prebuild@0.1.0 lax-mcp
+npx --yes --package @mashingaan/lax-mcp-prebuild@0.1.1 lax-mcp
 ```
 
 The installed package includes built JavaScript and declarations. Consumers do not need TypeScript or a source checkout. `npm pack` builds from source before assembling the package. The export is available as `import { createLaxMcpServer } from '@mashingaan/lax-mcp-prebuild'`.

@@ -12,7 +12,7 @@ export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
   const fetcher = options.fetch ?? globalThis.fetch
   // Validate baseUrl without issuing a request. No owner keys or payment support.
   createJobsClient({baseUrl,fetch:fetcher,retries:0})
-  const server = new McpServer({name:'lax-mcp',version:'0.1.0'})
+  const server = new McpServer({name:'lax-mcp',version:'0.1.1'})
   const result = (body: unknown) => ({content:[{type:'text' as const,text:JSON.stringify(body)}]})
   const run = async (operation: () => Promise<unknown>) => {
     try {return result(await operation())} catch(error) {
