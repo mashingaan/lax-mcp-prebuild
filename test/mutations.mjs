@@ -7,6 +7,7 @@ const mutants=[
  ['ignore error status','if (!response.ok)','if (false)'],
  ['error not marked', 'isError: true','isError: false'],
  ['wrong submission job','c.submit(job_id, input)',"c.submit('wrong', input)"],
+ ['whitespace id accepted','value.trim().length > 0 && ', ''],
  ['lost envelope','return envelope','return {}'],
  ['wrong search query','new URLSearchParams({ query })','new URLSearchParams({ q:query })']
 ]

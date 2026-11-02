@@ -1,6 +1,6 @@
 # LAX MCP server prebuild
 
-Node 20+, TypeScript and pinned MCP SDK 1.x. This is a proactive prebuild of LAX job a14478ee-35f7-4457-843a-482f25af6dad, not an award or accepted delivery. It is **not published** to npm. A6 publication is outstanding. No payments or wallet keys are supported.
+Node 20+, TypeScript and pinned MCP SDK 1.x. Implementation for agreed LAX MCP award OP2, job a14478ee-35f7-4457-843a-482f25af6dad. Official milestone acceptance is separate from repository checks. It is **not published** to npm. A6 publication is outstanding. No payments or wallet keys are supported.
 
 ```sh
 npm ci --ignore-scripts
@@ -39,7 +39,7 @@ Use the absolute built CLI path in your installation:
 
 `lax_submit` is a legacy job submission, not a bid, token transfer or selected-job delivery. Examples do not make live requests. The operator must authorize actual writes. Reads are free and require no key. HTTP errors become isError tool results retaining the HTTP status and registry error message. Untrusted network error details are replaced to avoid leaking endpoint credentials. There is no contact, payout or header logging. Inputs are checked before fetch.
 
-`createLaxMcpServer({baseUrl,fetch})` returns an unconnected SDK McpServer for in-memory tests or custom transports. Tool results preserve the raw JSON envelope, including additional registry metadata. Each request captures its own envelope to avoid concurrency races. The jobs client is reused verbatim from our acceptance-tested LAX fork, with retries disabled in this MCP adapter so each tool operation issues at most one request. It neither changes nor publishes the upstream package.
+`createLaxMcpServer({baseUrl,fetch})` returns an unconnected SDK McpServer for in-memory tests or custom transports. Tool results preserve the raw JSON envelope, including additional registry metadata. Each request captures its own envelope to avoid concurrency races. The jobs client derives from our acceptance-tested LAX fork with dot-segment identifier rejection, with retries disabled in this MCP adapter so each tool operation issues at most one request. It neither changes nor publishes the upstream package.
 
 ## Acceptance and remaining gates
 
@@ -51,6 +51,6 @@ Use the absolute built CLI path in your installation:
 - A6: actual stdio and Streamable HTTP SDK sessions, bin metadata and pack dry-run. npm publication is NOT complete and not simulated.
 - A7: Claude Desktop configuration and examples for every tool.
 
-Tests are entirely offline, including subprocess transports. `npm test` builds before testing. `npm run test:mutations` checks six planted defects in routes, query arguments, error handling, job selection and envelope preservation. Hosted CI runs Node 20/22 on Linux and Windows. No live registry submissions are made by tests. Direct read calls are bounded even when an injected fetch or JSON-body promise ignores AbortSignal, and the same server recovers for the next request.
+Tests are entirely offline, including subprocess transports. `npm test` builds before testing. `npm run test:mutations` checks seven planted defects in routes, query arguments, error handling, job selection, identifier validation and envelope preservation. Hosted CI runs Node 20/22 on Linux and Windows. No live registry submissions are made by tests. Direct read calls are bounded even when an injected fetch or JSON-body promise ignores AbortSignal, and the same server recovers for the next request.
 
-PACT-dependent items: confirm npm publisher access, an available authorized package name and required invocation semantics. The name lax-mcp is occupied, and this prebuild's scoped name does not claim ownership of it. A registry job schema or PACT change belongs in the reused jobs adapter. Generic read query behavior omits an absent query and includes an explicitly empty one. This implementation does not claim compatibility with unpublished PACT formats or unseen tests.
+M2 publication requires npm publisher access and an available authorized package name. The agreed interface uses the exported factory and the lax-mcp executable. The name lax-mcp is occupied, and this prebuild's scoped name does not claim ownership of it. A registry job schema or PACT change belongs in the reused jobs adapter. Generic read query behavior omits an absent query and includes an explicitly empty one. The agreed contract and acceptance mapping are recorded in PACT.md. Hidden-test acceptance must be recorded by Kognai.

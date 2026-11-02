@@ -134,3 +134,56 @@ test('A3 uncooperative read fetch and JSON bodies time out, then recover', {time
   } finally {await close()}
  }
 })
+
+test('A2 optional query boundaries preserve the exact registry answer',async()=>{
+ const calls=[]
+ const {client,close}=await pair(async(url,init)=>{
+  calls.push([url,init.method])
+  return Response.json({results:[],metadata:{untouched:true}})
+ })
+ try {
+  for(const args of [{},{query:''},{query:'x'.repeat(100)}]) {
+   assert.deepEqual(parsed(await client.callTool({name:'lax_search_agents',arguments:args})),{results:[],metadata:{untouched:true}})
+  }
+  assert.deepEqual(calls.map(c=>c[0]),['https://example.com/registry/search','https://example.com/registry/search?query=','https://example.com/registry/search?query='+'x'.repeat(100)])
+  assert.ok(calls.every(c=>c[1]==='GET'))
+ } finally {await close()}
+})
+
+test('A3 malformed JSON and malformed job envelopes fail cleanly then recover',async()=>{
+ for(const tool of ['lax_get_offer','lax_get_job','lax_list_jobs']) {
+  let calls=0
+  const {client,close}=await pair(async()=>{
+   calls++
+   if(calls===1) return new Response('not JSON',{status:200})
+   if(calls===2) return Response.json(tool==='lax_get_job'?{job:{id:'ok'}}:tool==='lax_list_jobs'?{jobs:[],count:0}:{offer:{id:'ok'}})
+   return Response.json(tool==='lax_get_job'?{job:null}:{jobs:[],count:-1})
+  })
+  try {
+   const args=tool==='lax_list_jobs'?{}:{id:'x'}
+   assert.equal((await client.callTool({name:tool,arguments:args})).isError,true)
+   assert.notEqual((await client.callTool({name:tool,arguments:args})).isError,true)
+   if(tool!=='lax_get_offer') assert.equal((await client.callTool({name:tool,arguments:args})).isError,true)
+  } finally {await close()}
+ }
+})
+
+test('A4 missing and malformed parameters cannot dispatch a request',async()=>{
+ let calls=0
+ const {client,close}=await pair(async()=>{calls++
+  return Response.json({})})
+ try {
+  const cases=[['lax_get_offer',{id:'   '}],['lax_get_offer',{id:42}],['lax_get_job',{id:null}],['lax_search_agents',{query:null}],['lax_list_jobs',{limit:0}],['lax_list_jobs',{offset:-1}],['lax_list_jobs',{offset:1.5}],['lax_list_jobs',{offset:Number.MAX_SAFE_INTEGER+1}]]
+  for(const field of Object.keys(input).filter(k=>k!=='notes')) {
+   const args={...input}
+   delete args[field]
+   cases.push(['lax_submit',args])
+  }
+  for(const [name,args] of cases) {
+   let outcome
+   try {outcome=await client.callTool({name,arguments:args})} catch(error) {assert.equal(error.code,-32602)}
+   if(outcome) assert.equal(outcome.isError,true)
+  }
+  assert.equal(calls,0)
+ } finally {await close()}
+})

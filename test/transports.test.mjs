@@ -14,8 +14,8 @@ test('A5 A6 actual stdio SDK transport has no sensitive logs and no network',asy
  const errors=[]
  client.onerror=error=>errors.push(error.message)
  try {
-  await client.connect(transport)
   transport.stderr?.on('data',chunk=>{stderr+=chunk.toString()})
+  await client.connect(transport)
   assert.equal((await client.listTools()).tools.length,5)
   const result=await client.callTool({name:'lax_submit',arguments:{job_id:'test',builder:'Agent',contact:'SECRET_CONTACT',payout_address:'0x'+'ab'.repeat(20),repo_or_patch_url:'https://example.com/repo',agent_did:'did:example:agent'}})
   assert.notEqual(result.isError,true)
@@ -44,11 +44,25 @@ test('A6 actual Streamable HTTP SDK initializes, lists and calls tools',async()=
   await new Promise(resolve=>server.close(resolve))
  }
 })
-test('A6 packaging metadata and A7 configuration/examples are present',()=>{
+test('A7 README documents actual factory, transports and every tool',()=>{
  const pkg=JSON.parse(readFileSync('package.json','utf8'))
  assert.equal(pkg.bin['lax-mcp'],'dist/cli.js')
  assert.match(pkg.dependencies['@modelcontextprotocol/sdk'],/^1\./)
  const readme=readFileSync('README.md','utf8')
  for(const name of ['mcpServers','lax_search_agents','lax_get_offer','lax_list_jobs','lax_get_job','lax_submit']) assert.ok(readme.includes(name))
  assert.ok(readme.includes('not published'))
+})
+
+test('A6 invalid CLI arguments exit nonzero without stdout',async()=>{
+ const {spawn}=await import('node:child_process')
+ for(const args of [['--unknown'],['--http','--port','0'],['--http','--port','65536']]) {
+  const child=spawn(process.execPath,['dist/cli.js',...args],{stdio:['ignore','pipe','pipe']})
+  let stdout='',stderr=''
+  child.stdout.on('data',chunk=>{stdout+=chunk})
+  child.stderr.on('data',chunk=>{stderr+=chunk})
+  const [code]=await once(child,'close')
+  assert.equal(code,1)
+  assert.equal(stdout,'')
+  assert.match(stderr,/failed to start/)
+ }
 })
