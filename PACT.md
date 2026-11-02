@@ -44,7 +44,7 @@ Due 2026-11-06T20:00:00Z. Value 129.50 USDC on Base after explicit acceptance.
 | A4 reject invalid input before request | Satisfied and tested | Missing/malformed parameter and zero-request tests |
 | A5 logging and stdio discipline | Satisfied and tested | Actual SDK subprocess protocol and stderr checks |
 | A6 stdio and Streamable HTTP | Satisfied and tested | Actual SDK clients, CLI exit and package smoke |
-| A6 npm publication with executable | Requires external authorization | No npm login available, package remains private until authorized publication |
+| A6 npm publication with executable | Pending registry verification | Owner npm login is available, publication requires owner 2FA and registry install smoke |
 | A7 README Claude Desktop configuration and all examples | Satisfied and tested | README review and A7 test |
 | M2 hidden tests and two reviewers | External, not claimed passed | Official delivery acceptance only |
 
@@ -52,6 +52,6 @@ Due 2026-11-06T20:00:00Z. Value 129.50 USDC on Base after explicit acceptance.
 
 Package @mashingaan/lax-mcp-prebuild, executable lax-mcp. The contract gives lax-mcp as an executable example and does not mandate an unscoped package name.
 MIT for the MCP adapter, Apache-2.0 for the reused jobs client with LICENSE.jobs-client and NOTICE.md retained.
-README documents source installation, both transports, injected factory use, all five tools, and the outstanding publication gate.
+README documents source and npm installation, both transports, injected factory use, and all five tools. Registry evidence is recorded separately after publication.
 
 Only owner message signatures are used for official deliveries. No payments, transactions, approvals or wallet secrets are required.

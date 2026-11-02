@@ -1,6 +1,6 @@
 # LAX MCP server prebuild
 
-Node 20+, TypeScript and pinned MCP SDK 1.x. Implementation for agreed LAX MCP award OP2, job a14478ee-35f7-4457-843a-482f25af6dad. Official milestone acceptance is separate from repository checks. It is **not published** to npm. A6 publication is outstanding. No payments or wallet keys are supported.
+Node 20+, TypeScript and pinned MCP SDK 1.x. Implementation for agreed LAX MCP award OP2, job a14478ee-35f7-4457-843a-482f25af6dad. Registry publication and official milestone acceptance are verified separately from repository checks. No payments or wallet keys are supported.
 
 ```sh
 npm ci --ignore-scripts
@@ -11,6 +11,24 @@ node dist/cli.js --http --port 3000
 ```
 
 Default transport is stdio, with no application logs on stdout. HTTP is stateless Streamable HTTP on http://127.0.0.1:3000/mcp, bound to loopback with Host and Origin restrictions. Set PORT instead of --port if preferred. This HTTP mode is a local agent tool, not a publicly authenticated deployment. GET/SSE sessions are not needed for the stateless JSON transport. Do not expose it publicly without authentication, network access controls and an explicit operator mandate.
+
+## npm installation
+
+For the published 0.1.0 release:
+
+```sh
+npm install -g @mashingaan/lax-mcp-prebuild@0.1.0
+lax-mcp
+lax-mcp --http --port 3000
+```
+
+Alternatively run without a global installation:
+
+```sh
+npx --yes --package @mashingaan/lax-mcp-prebuild@0.1.0 lax-mcp
+```
+
+The installed package includes built JavaScript and declarations. Consumers do not need TypeScript or a source checkout. `npm pack` builds from source before assembling the package. The export is available as `import { createLaxMcpServer } from '@mashingaan/lax-mcp-prebuild'`.
 
 ## Claude Desktop
 
@@ -41,16 +59,16 @@ Use the absolute built CLI path in your installation:
 
 `createLaxMcpServer({baseUrl,fetch})` returns an unconnected SDK McpServer for in-memory tests or custom transports. Tool results preserve the raw JSON envelope, including additional registry metadata. Each request captures its own envelope to avoid concurrency races. The jobs client derives from our acceptance-tested LAX fork with dot-segment identifier rejection, with retries disabled in this MCP adapter so each tool operation issues at most one request. It neither changes nor publishes the upstream package.
 
-## Acceptance and remaining gates
+## Acceptance and verification
 
 - A1: exact five described tools and schemas, real SDK tools/list.
 - A2: all routes, encoded IDs, optional parameters, JSON body without job_id, raw envelopes.
 - A3: 400/404/409/429/500 and network failures, followed by recovery on the same server.
 - A4: invalid id, URL, address, DID, query length and limits, with zero outbound requests.
 - A5: actual stdio transport, mocked fetch preload, no sensitive stderr and no protocol parse errors.
-- A6: actual stdio and Streamable HTTP SDK sessions, bin metadata and pack dry-run. npm publication is NOT complete and not simulated.
+- A6: actual stdio and Streamable HTTP SDK sessions, bin metadata and pack dry-run. The published version must additionally pass a clean registry installation and executable smoke test before M2 delivery.
 - A7: Claude Desktop configuration and examples for every tool.
 
 Tests are entirely offline, including subprocess transports. `npm test` builds before testing. `npm run test:mutations` checks seven planted defects in routes, query arguments, error handling, job selection, identifier validation and envelope preservation. Hosted CI runs Node 20/22 on Linux and Windows. No live registry submissions are made by tests. Direct read calls are bounded even when an injected fetch or JSON-body promise ignores AbortSignal, and the same server recovers for the next request.
 
-M2 publication requires npm publisher access and an available authorized package name. The agreed interface uses the exported factory and the lax-mcp executable. The name lax-mcp is occupied, and this prebuild's scoped name does not claim ownership of it. A registry job schema or PACT change belongs in the reused jobs adapter. Generic read query behavior omits an absent query and includes an explicitly empty one. The agreed contract and acceptance mapping are recorded in PACT.md. Hidden-test acceptance must be recorded by Kognai.
+M2 requires registry publication under the owner-authorized scope @mashingaan and a successful clean installation of that exact version. The agreed interface uses the exported factory and the lax-mcp executable. The name lax-mcp is occupied, and this prebuild's scoped name does not claim ownership of it. A registry job schema or PACT change belongs in the reused jobs adapter. Generic read query behavior omits an absent query and includes an explicitly empty one. The agreed contract and acceptance mapping are recorded in PACT.md. Hidden-test acceptance must be recorded by Kognai.

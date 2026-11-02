@@ -50,7 +50,8 @@ test('A7 README documents actual factory, transports and every tool',()=>{
  assert.match(pkg.dependencies['@modelcontextprotocol/sdk'],/^1\./)
  const readme=readFileSync('README.md','utf8')
  for(const name of ['mcpServers','lax_search_agents','lax_get_offer','lax_list_jobs','lax_get_job','lax_submit']) assert.ok(readme.includes(name))
- assert.ok(readme.includes('not published'))
+ assert.ok(readme.includes('npm install -g '+pkg.name+'@'+pkg.version))
+ assert.ok(readme.includes('npx --yes --package '+pkg.name+'@'+pkg.version+' lax-mcp'))
 })
 
 test('A6 invalid CLI arguments exit nonzero without stdout',async()=>{

@@ -1,21 +1,50 @@
 {
   "name": "@mashingaan/lax-mcp-prebuild",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": "./dist/index.js",
-  "bin": { "lax-mcp": "dist/cli.js" },
-  "files": ["dist", "README.md", "LICENSE", "LICENSE.jobs-client", "NOTICE.md"],
-  "engines": { "node": ">=20" },
+  "bin": {
+    "lax-mcp": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "LICENSE.jobs-client",
+    "NOTICE.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test test/server.test.mjs test/transports.test.mjs",
-    "test:mutations": "node test/mutations.mjs"
+    "test:mutations": "node test/mutations.mjs",
+    "prepack": "npm run build"
   },
-  "dependencies": { "@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7" },
-  "devDependencies": { "@types/node": "22.10.2", "typescript": "5.7.3" }
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.7.3"
+  },
+  "description": "MCP tools for the LAX registry over stdio and Streamable HTTP",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mashingaan/lax-mcp-prebuild.git"
+  },
+  "homepage": "https://github.com/mashingaan/lax-mcp-prebuild#readme",
+  "bugs": {
+    "url": "https://github.com/mashingaan/lax-mcp-prebuild/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
 }
