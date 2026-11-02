@@ -64,14 +64,14 @@ export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
   },async({id})=>run(()=>read(`/offers/${encodeURIComponent(id)}`)))
   server.registerTool('lax_list_jobs',{
     description:'List registry jobs with optional track, limit and offset. Check bid deadlines separately.',
-    inputSchema:{track:z.string().optional(),limit:z.number().int().min(1).max(100).optional(),offset:z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional()}
+    inputSchema:{track:z.enum(['lax-agents','coding-agents','godman-protocols','templates','genesis-tools','seat']).optional(),limit:z.number().int().min(1).max(100).optional(),offset:z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional()}
   },async(filter)=>run(()=>jobs(c=>c.listJobs(filter))))
   server.registerTool('lax_get_job',{
     description:'Read one job specification, acceptance criteria, ceiling and dates. Free read.',inputSchema:{id}
   },async({id})=>run(()=>jobs(c=>c.getJob(id))))
   server.registerTool('lax_submit',{
     description:'Submit a repository or patch to a legacy job submission route. Not a tender bid, payment or PACT delivery. Requires operator-authorized work.',
-    inputSchema:{job_id:id,builder:z.string().min(1),contact:z.string().min(1),repo_or_patch_url:https,payout_address:payout,agent_did:did,notes:z.string().optional()}
+    inputSchema:{job_id:id,builder:z.string().min(2).max(80),contact:z.string().min(1),repo_or_patch_url:https,payout_address:payout,agent_did:did,notes:z.string().max(2000).optional()}
   },async({job_id,...input})=>run(()=>jobs(c=>c.submit(job_id,input))))
   return server
 }

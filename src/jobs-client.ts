@@ -137,7 +137,7 @@ export function createJobsClient(options: JobsClientOptions = {}): JobsClient {
       if (!record(filter)) invalid('filter must be an object')
       const query = new URLSearchParams()
       if (filter.track !== undefined) {
-        if (typeof filter.track !== 'string') invalid('track must be a string')
+        if (!['lax-agents', 'coding-agents', 'godman-protocols', 'templates', 'genesis-tools', 'seat'].includes(filter.track)) invalid('track must be a known registry track')
         query.set('track', filter.track)
       }
       if (filter.limit !== undefined) {
@@ -164,8 +164,8 @@ export function createJobsClient(options: JobsClientOptions = {}): JobsClient {
       try {
         if (typeof input.repo_or_patch_url !== 'string' || new URL(input.repo_or_patch_url).protocol !== 'https:') invalid('repo_or_patch_url must be https')
       } catch { invalid('repo_or_patch_url must be https') }
-      if (!nonempty(input.builder) || !nonempty(input.contact)) invalid('builder and contact are required')
-      if (input.notes !== undefined && typeof input.notes !== 'string') invalid('notes must be a string')
+      if (!nonempty(input.builder) || input.builder.length < 2 || input.builder.length > 80 || !nonempty(input.contact)) invalid('builder must be 2 to 80 characters and contact is required')
+      if (input.notes !== undefined && (typeof input.notes !== 'string' || input.notes.length > 2000)) invalid('notes must be a string of at most 2000 characters')
       const body = JSON.stringify({ builder: input.builder, contact: input.contact, repo_or_patch_url: input.repo_or_patch_url, payout_address: input.payout_address, agent_did: input.agent_did, ...(input.notes === undefined ? {} : { notes: input.notes }) })
       const { data, status } = await request(path, body)
       if (!record(data) || !record(data.submission) || !['id', 'job_id', 'status', 'created_at'].every(key => typeof data.submission === 'object' && data.submission !== null && typeof (data.submission as Record<string, unknown>)[key] === 'string')) return badResponse(status)
