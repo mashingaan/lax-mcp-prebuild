@@ -44,3 +44,12 @@ jobs:
             test -x node_modules/.bin/lax-mcp
             node_modules/.bin/lax-mcp </dev/null
           fi
+      - name: Verify installed Linux bin of public baseline 0.1.1
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -eu
+          consumer=$(mktemp -d)
+          npm install --prefix "$consumer" --registry https://registry.npmjs.org --ignore-scripts @mashingaan/lax-mcp-prebuild@0.1.1
+          test -x "$consumer/node_modules/.bin/lax-mcp"
+          "$consumer/node_modules/.bin/lax-mcp" </dev/null
