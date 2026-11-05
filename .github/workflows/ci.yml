@@ -20,13 +20,22 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:mutations
-      - name: Install the packed candidate outside its checkout
+      - name: Verify the public npm release outside its checkout
         shell: bash
         run: |
           set -eu
-          archive=$(npm pack --silent | tail -1)
+          attempts=0
+          until npm view @mashingaan/lax-mcp-prebuild@0.1.2 version --registry https://registry.npmjs.org
+          do
+            attempts=$((attempts+1))
+            if [ "$attempts" -ge 12 ]
+            then
+              exit 1
+            fi
+            sleep 15
+          done
           consumer=$(mktemp -d)
-          npm install --prefix "$consumer" --ignore-scripts "$PWD/$archive"
+          npm install --prefix "$consumer" --registry https://registry.npmjs.org --ignore-scripts @mashingaan/lax-mcp-prebuild@0.1.2
           npm install --prefix "$consumer" --ignore-scripts @modelcontextprotocol/sdk@1.32.2
           cp -r test "$consumer/"
           cd "$consumer"
@@ -44,12 +53,12 @@ jobs:
             test -x node_modules/.bin/lax-mcp
             node_modules/.bin/lax-mcp </dev/null
           fi
-      - name: Verify installed Linux bin of public baseline 0.1.1
+      - name: Verify installed Linux bin of public release 0.1.2
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -eu
           consumer=$(mktemp -d)
-          npm install --prefix "$consumer" --registry https://registry.npmjs.org --ignore-scripts @mashingaan/lax-mcp-prebuild@0.1.1
+          npm install --prefix "$consumer" --registry https://registry.npmjs.org --ignore-scripts @mashingaan/lax-mcp-prebuild@0.1.2
           test -x "$consumer/node_modules/.bin/lax-mcp"
           "$consumer/node_modules/.bin/lax-mcp" </dev/null
