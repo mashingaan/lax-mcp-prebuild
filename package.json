@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test test/server.test.mjs test/transports.test.mjs test/redteam.test.mjs",
+    "test": "npm run build && node --test test/server.test.mjs test/transports.test.mjs test/redteam.test.mjs test/contract.test.mjs",
     "test:mutations": "node test/mutations.mjs",
     "prepack": "npm run build"
   },

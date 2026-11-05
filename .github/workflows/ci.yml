@@ -20,4 +20,27 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:mutations
-      - run: npm pack --dry-run
+      - name: Install the packed candidate outside its checkout
+        shell: bash
+        run: |
+          set -eu
+          archive=$(npm pack --silent | tail -1)
+          consumer=$(mktemp -d)
+          npm install --prefix "$consumer" --ignore-scripts "$PWD/$archive"
+          npm install --prefix "$consumer" --ignore-scripts @modelcontextprotocol/sdk@1.32.2
+          cp -r test "$consumer/"
+          cd "$consumer"
+          package=node_modules/@mashingaan/lax-mcp-prebuild
+          for suite in test/*.test.mjs
+          do
+            sed -i 's|../dist/index.js|@mashingaan/lax-mcp-prebuild|g' "$suite"
+            sed -i "s|../dist/http.js|../$package/dist/http.js|g" "$suite"
+            sed -i "s|../dist/jobs-client.js|../$package/dist/jobs-client.js|g" "$suite"
+            sed -i "s|../dist/cli.js|../$package/dist/cli.js|g" "$suite"
+          done
+          (cd "$package" && node --test "$consumer"/test/*.test.mjs)
+          if [ "$RUNNER_OS" = Linux ]
+          then
+            test -x node_modules/.bin/lax-mcp
+            node_modules/.bin/lax-mcp </dev/null
+          fi

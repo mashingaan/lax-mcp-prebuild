@@ -6,9 +6,11 @@ const mutants=[
  ['wrong offer route','/offers/','/offer/'],
  ['ignore error status','if (!response.ok)','if (false)'],
  ['error not marked', 'isError: true','isError: false'],
- ['wrong submission job','c.submit(job_id, input)',"c.submit('wrong', input)"],
+ ['wrong submission job','encodeURIComponent(job_id)',"'wrong'"],
  ['whitespace id accepted','value.trim().length > 0 && ', ''],
- ['lost envelope','return envelope','return {}'],
+ ['lost envelope','return await response.json()', 'return {}'],
+ ['count UTF16 units','Array.from(value).length','value.length'],
+ ['forward submit redirects', "redirect: 'error'", "redirect: 'follow'"],
  ['wrong search query','new URLSearchParams({ query })','new URLSearchParams({ q:query })']
 ]
 const source=readFileSync('dist/index.js','utf8')
@@ -21,7 +23,7 @@ for(const [name,before,after] of mutants) {
   writeFileSync(join(dir,'dist/index.js'),changed)
   const syntax=spawnSync(process.execPath,['--check',join(dir,'dist/index.js')],{encoding:'utf8'})
   assert.equal(syntax.status,0,syntax.stderr)
-  const result=spawnSync(process.execPath,['--test','test/server.test.mjs','test/transports.test.mjs'],{cwd:dir,encoding:'utf8',timeout:15000})
+  const result=spawnSync(process.execPath,['--test','test/server.test.mjs','test/transports.test.mjs','test/contract.test.mjs'],{cwd:dir,encoding:'utf8',timeout:15000})
   assert.equal(result.error,undefined,name)
   assert.ok(result.status>0,name+' survived')
   assert.ok(/AssertionError|ERR_ASSERTION/.test(result.stdout),name+' must reach an assertion')

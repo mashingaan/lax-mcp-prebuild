@@ -7,6 +7,12 @@ const id = z.string().min(1).refine(value => value.trim().length > 0 && value !=
 const did = z.string().regex(/^did:[a-z0-9]+:\S+$/)
 const payout = z.string().regex(/^0x[0-9a-fA-F]{40}$/)
 const https = z.string().url().refine(value => new URL(value).protocol === 'https:', 'An https URL is required')
+function boundedText(min: number, max: number) {
+  return z.string().refine(value => {
+    const size = Array.from(value).length
+    return size >= min && size <= max
+  }).meta({minLength:min,maxLength:max})
+}
 export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
   const baseUrl = (options.baseUrl ?? 'https://lax.kognai.ai/registry').replace(/\/+$/, '')
   const fetcher = options.fetch ?? globalThis.fetch
@@ -21,7 +27,7 @@ export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
       return {isError:true,content:[{type:'text' as const,text:`HTTP ${status}: ${message}`}]}
     }
   }
-  async function read(path: string): Promise<unknown> {
+  async function request(path: string, body?: Record<string, unknown>): Promise<unknown> {
     let response: Response
     const controller=new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -30,48 +36,59 @@ export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
         reject(new LaxJobsError('Network request timed out',response?.status??0,'network'))
         controller.abort()
       },15000)}),(async()=>{
-        try {response=await fetcher(`${baseUrl}${path}`,{method:'GET',signal:controller.signal})}
+        try {response=await fetcher(`${baseUrl}${path}`,{
+          method: body === undefined ? 'GET' : 'POST',
+          signal: controller.signal,
+          ...(body === undefined ? {} : {
+            body: JSON.stringify(body),
+            headers: {'content-type':'application/json'},
+            redirect: 'error' as const
+          })
+        })}
         catch {throw new LaxJobsError('Network request failed',0,'network')}
-        let data: unknown
-        try {data=await response.json()} catch {throw new LaxJobsError('Registry returned invalid JSON',response.status,'invalid_response')}
-        if(!response.ok) throw new LaxJobsError(object(data)&&typeof data.error==='string'?data.error:`Registry HTTP ${response.status}`,response.status,'bad_request')
-        return data
+        if (!response.ok) {
+          let message = 'Registry HTTP ' + response.status
+          try {
+            const raw = typeof response.text === 'function' ? await response.text() : JSON.stringify(await response.json())
+            try {
+              const data: unknown = JSON.parse(raw)
+              if (object(data)) {
+                if (typeof data.error === 'string') message = data.error
+                else if (typeof data.message === 'string') message = data.message
+              } else if (typeof data === 'string') message = data
+            } catch {
+              if (raw.trim()) message = raw
+            }
+          } catch { /* Keep status when the error body is unreadable. */ }
+          throw new LaxJobsError(message,response.status,'bad_request')
+        }
+        try {return await response.json()} catch {
+          throw new LaxJobsError('Registry returned invalid JSON',response.status,'invalid_response')
+        }
       })()])
     } finally {if(timer!==undefined) clearTimeout(timer)}
   }
-  // Capture the original JSON envelope per call, preserving additional registry
-  // metadata while sharing the tested jobs client's validation and transport.
-  async function jobs(operation: (client: ReturnType<typeof createJobsClient>) => Promise<unknown>): Promise<unknown> {
-    let envelope: unknown
-    const capture: typeof fetch = async (url,init) => {
-      const response = await fetcher(url,init)
-      return new Proxy(response, {get(target,key) {
-        if(key==='json') return async()=>{envelope=await target.json()
-          return envelope}
-        const value=Reflect.get(target,key,target)
-        return typeof value==='function'?value.bind(target):value
-      }})
-    }
-    await operation(createJobsClient({baseUrl,fetch:capture,retries:0}))
-    return envelope
-  }
   server.registerTool('lax_search_agents',{
     description:'Search listed LAX agents by optional free text, at most 100 characters. Free read.',
-    inputSchema:{query:z.string().max(100).optional()}
-  },async({query})=>run(()=>read(`/search${query===undefined?'':`?${new URLSearchParams({query})}`}`)))
+    inputSchema:{query:boundedText(0,100).optional()}
+  },async({query})=>run(()=>request(`/search${query===undefined?'':`?${new URLSearchParams({query})}`}`)))
   server.registerTool('lax_get_offer',{
     description:'Read one public agent offer by its registry identifier. Free read.',inputSchema:{id}
-  },async({id})=>run(()=>read(`/offers/${encodeURIComponent(id)}`)))
+  },async({id})=>run(()=>request(`/offers/${encodeURIComponent(id)}`)))
   server.registerTool('lax_list_jobs',{
     description:'List registry jobs with optional track, limit and offset. Check bid deadlines separately.',
-    inputSchema:{track:z.enum(['lax-agents','coding-agents','godman-protocols','templates','genesis-tools','seat']).optional(),limit:z.number().int().min(1).max(100).optional(),offset:z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional()}
-  },async(filter)=>run(()=>jobs(c=>c.listJobs(filter))))
+    inputSchema:{track:z.enum(['lax-agents','coding-agents','godman-protocols','templates','genesis-tools','seat']).optional(),limit:z.number().int().max(100).optional(),offset:z.number().int().optional()}
+  },async(filter)=>run(()=>{
+    const query = new URLSearchParams()
+    for (const [key,value] of Object.entries(filter)) query.set(key,String(value))
+    return request(query.size ? '/jobs?'+query : '/jobs')
+  }))
   server.registerTool('lax_get_job',{
     description:'Read one job specification, acceptance criteria, ceiling and dates. Free read.',inputSchema:{id}
-  },async({id})=>run(()=>jobs(c=>c.getJob(id))))
+  },async({id})=>run(()=>request(`/jobs/${encodeURIComponent(id)}`)))
   server.registerTool('lax_submit',{
     description:'Submit a repository or patch to a legacy job submission route. Not a tender bid, payment or PACT delivery. Requires operator-authorized work.',
-    inputSchema:{job_id:id,builder:z.string().min(2).max(80),contact:z.string().min(1),repo_or_patch_url:https,payout_address:payout,agent_did:did,notes:z.string().max(2000).optional()}
-  },async({job_id,...input})=>run(()=>jobs(c=>c.submit(job_id,input))))
+    inputSchema:{job_id:id,builder:boundedText(2,80),contact:z.string().min(1).refine(value => value.trim().length > 0),repo_or_patch_url:https,payout_address:payout,agent_did:did,notes:boundedText(0,2000).optional()}
+  },async({job_id,...input})=>run(()=>request(`/jobs/${encodeURIComponent(job_id)}/submissions`,input)))
   return server
 }

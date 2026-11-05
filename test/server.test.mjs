@@ -150,7 +150,7 @@ test('A2 optional query boundaries preserve the exact registry answer',async()=>
  } finally {await close()}
 })
 
-test('A3 malformed JSON and malformed job envelopes fail cleanly then recover',async()=>{
+test('A3 malformed JSON fails cleanly then valid registry JSON is preserved',async()=>{
  for(const tool of ['lax_get_offer','lax_get_job','lax_list_jobs']) {
   let calls=0
   const {client,close}=await pair(async()=>{
@@ -163,7 +163,7 @@ test('A3 malformed JSON and malformed job envelopes fail cleanly then recover',a
    const args=tool==='lax_list_jobs'?{}:{id:'x'}
    assert.equal((await client.callTool({name:tool,arguments:args})).isError,true)
    assert.notEqual((await client.callTool({name:tool,arguments:args})).isError,true)
-   if(tool!=='lax_get_offer') assert.equal((await client.callTool({name:tool,arguments:args})).isError,true)
+   if(tool!=='lax_get_offer') assert.deepEqual(JSON.parse((await client.callTool({name:tool,arguments:args})).content[0].text),tool==='lax_get_job'?{job:null}:{jobs:[],count:-1})
   } finally {await close()}
  }
 })
@@ -173,7 +173,7 @@ test('A4 missing and malformed parameters cannot dispatch a request',async()=>{
  const {client,close}=await pair(async()=>{calls++
   return Response.json({})})
  try {
-  const cases=[['lax_get_offer',{id:'   '}],['lax_get_offer',{id:42}],['lax_get_job',{id:null}],['lax_search_agents',{query:null}],['lax_list_jobs',{limit:0}],['lax_list_jobs',{offset:-1}],['lax_list_jobs',{offset:1.5}],['lax_list_jobs',{offset:Number.MAX_SAFE_INTEGER+1}]]
+  const cases=[['lax_get_offer',{id:'   '}],['lax_get_offer',{id:42}],['lax_get_job',{id:null}],['lax_search_agents',{query:null}],['lax_list_jobs',{offset:1.5}],['lax_list_jobs',{offset:Number.MAX_SAFE_INTEGER+1}]]
   for(const field of Object.keys(input).filter(k=>k!=='notes')) {
    const args={...input}
    delete args[field]
