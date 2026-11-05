@@ -8,7 +8,7 @@ const mutants=[
  ['error not marked', 'isError: true','isError: false'],
  ['wrong submission job','encodeURIComponent(job_id)',"'wrong'"],
  ['whitespace id accepted','value.trim().length > 0 && ', ''],
- ['lost envelope','return await response.json()', 'return {}'],
+ ['lost envelope','return JSON.parse(await responseText(response))', 'return {}'],
  ['count UTF16 units','Array.from(value).length','value.length'],
  ['forward submit redirects', "redirect: 'error'", "redirect: 'follow'"],
  ['wrong search query','new URLSearchParams({ query })','new URLSearchParams({ q:query })']

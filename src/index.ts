@@ -13,6 +13,30 @@ function boundedText(min: number, max: number) {
     return size >= min && size <= max
   }).meta({minLength:min,maxLength:max})
 }
+async function responseText(response: Response): Promise<string> {
+  if (!response.body) {
+    if (typeof response.text === 'function') return response.text()
+    return JSON.stringify(await response.json())
+  }
+  const reader = response.body.getReader()
+  const chunks: Buffer[] = []
+  let bytes = 0
+  try {
+    while (true) {
+      const {done,value} = await reader.read()
+      if (done) break
+      bytes += value.byteLength
+      if (bytes > 16 * 1024 * 1024) {
+        void reader.cancel().catch(() => {})
+        throw new LaxJobsError('Registry response exceeds 16 MiB',response.status,'invalid_response')
+      }
+      chunks.push(Buffer.from(value))
+    }
+    return Buffer.concat(chunks).toString('utf8')
+  } finally {
+    reader.releaseLock()
+  }
+}
 export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
   const baseUrl = (options.baseUrl ?? 'https://lax.kognai.ai/registry').replace(/\/+$/, '')
   const fetcher = options.fetch ?? globalThis.fetch
@@ -49,7 +73,7 @@ export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
         if (!response.ok) {
           let message = 'Registry HTTP ' + response.status
           try {
-            const raw = typeof response.text === 'function' ? await response.text() : JSON.stringify(await response.json())
+            const raw = await responseText(response)
             try {
               const data: unknown = JSON.parse(raw)
               if (object(data)) {
@@ -59,10 +83,13 @@ export function createLaxMcpServer(options: LaxMcpOptions = {}): McpServer {
             } catch {
               if (raw.trim()) message = raw
             }
-          } catch { /* Keep status when the error body is unreadable. */ }
+          } catch (error) {
+            if (error instanceof LaxJobsError) throw error
+          }
           throw new LaxJobsError(message,response.status,'bad_request')
         }
-        try {return await response.json()} catch {
+        try {return JSON.parse(await responseText(response))} catch (error) {
+          if (error instanceof LaxJobsError) throw error
           throw new LaxJobsError('Registry returned invalid JSON',response.status,'invalid_response')
         }
       })()])

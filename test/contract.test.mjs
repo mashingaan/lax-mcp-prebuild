@@ -88,3 +88,26 @@ test('A2 pagination forwards OpenAPI integers without adding undocumented minima
     assert.equal(url.search,'?limit=0&offset=-1')
   })
 })
+
+test('A3 excessive upstream streams are cancelled and the client recovers', async () => {
+  let cancelled = false
+  let calls = 0
+  await exercise(async () => {
+    if (++calls > 1) return Response.json({ok:true})
+    const chunk = new Uint8Array(1024 * 1024).fill(32)
+    let chunks = 0
+    return new Response(new ReadableStream({
+      pull(stream) {
+        if (++chunks > 18) stream.close()
+        else stream.enqueue(chunk)
+      },
+      cancel() {cancelled = true}
+    }))
+  }, async call => {
+    const result = await call('lax_get_offer',{id:'x'})
+    assert.equal(result.isError,true)
+    assert.match(result.content[0].text,/exceeds/)
+    assert.equal(cancelled,true)
+    assert.deepEqual(JSON.parse((await call('lax_get_offer',{id:'x'})).content[0].text),{ok:true})
+  })
+})

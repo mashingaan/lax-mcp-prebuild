@@ -57,7 +57,7 @@ Use the absolute built CLI path in your installation:
 
 `lax_submit` is a legacy job submission, not a bid, token transfer or selected-job delivery. Examples do not make live requests. The operator must authorize actual writes. Reads are free and require no key. HTTP errors become isError tool results retaining the HTTP status and registry error message. Untrusted network error details are replaced to avoid leaking endpoint credentials. There is no contact, payout or header logging. Inputs are checked before fetch, including the OpenAPI track enum, builder length 2 to 80, and notes length at most 2000.
 
-`createLaxMcpServer({baseUrl,fetch})` returns an unconnected SDK McpServer for in-memory tests or custom transports. Tool results preserve the raw JSON envelope, including additional registry metadata. Each tool makes a single fetch and preserves successful JSON without requiring extra registry fields. Submission requests refuse redirects.
+`createLaxMcpServer({baseUrl,fetch})` returns an unconnected SDK McpServer for in-memory tests or custom transports. Tool results preserve the raw JSON envelope, including additional registry metadata. Each tool makes a single fetch and preserves successful JSON without requiring extra registry fields. Submission requests refuse redirects. Upstream response streams are limited to 16 MiB per call.
 
 ## Acceptance and verification
 
