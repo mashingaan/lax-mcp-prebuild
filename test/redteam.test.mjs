@@ -6,6 +6,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { createLaxMcpServer } from '../dist/index.js'
 import { createLaxHttpServer } from '../dist/http.js'
+import { createInMemoryFetch } from './inmemory-http.mjs'
 import { createJobsClient } from '../dist/jobs-client.js'
 const submission={job_id:'j',builder:'Agent',contact:'private-contact',repo_or_patch_url:'https://example.com/repo',payout_address:'0x'+'ab'.repeat(20),agent_did:'did:example:agent'}
 async function pair(fetch) {
@@ -86,12 +87,35 @@ test('A4 adversarial identifiers cannot escape an encoded path segment',async()=
   assert.equal(urls.length,previous)
  } finally {await close()}
 })
-test('A6 malformed and oversized HTTP requests fail closed and server recovers',async()=>{
+test('A6 malformed and oversized HTTP requests fail closed and server recovers in memory',async()=>{
  let requests=0
  const server=createLaxHttpServer({fetch:async()=>{requests++
   return Response.json({jobs:[],count:0})}})
- server.listen(0,'127.0.0.1')
- await once(server,'listening')
+ const fetchInMemory=createInMemoryFetch(server)
+ const url='http://127.0.0.1/mcp'
+ const send=(body,headers={})=>fetchInMemory(url,{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream',...headers},body})
+ assert.equal(server.listening,false,'this test must not bind a socket')
+ assert.equal((await send('{')).status,400)
+ assert.equal((await send('x'.repeat(65537))).status,413)
+ assert.equal((await send('{}',{host:'attacker.example'})).status,403)
+ assert.equal((await send('{}',{origin:'null'})).status,403)
+ assert.equal(requests,0)
+ const response=await send(JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'lax_list_jobs',arguments:{}}}))
+ assert.equal(response.status,200)
+ assert.equal((await response.json()).result.isError,undefined)
+ assert.equal(requests,1)
+})
+test('A6 the same HTTP guards hold on a real socket when one is available',async t=>{
+ let requests=0
+ const server=createLaxHttpServer({fetch:async()=>{requests++
+  return Response.json({jobs:[],count:0})}})
+ try {
+  server.listen(0,'127.0.0.1')
+  await once(server,'listening')
+ } catch {
+  t.skip('this environment denies binding a loopback socket, the in-memory test above covers A6')
+  return
+ }
  const url='http://127.0.0.1:'+server.address().port+'/mcp'
  try {
   const send=(body,headers={})=>fetch(url,{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream',...headers},body})
